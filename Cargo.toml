@@ -1,0 +1,8 @@
+[package]
+name = "rusty_status_bar"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+x11 = "2.21.0"
+chrono = "0.4.38"
