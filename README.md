@@ -1,5 +1,5 @@
 # Rusty status bar
-Simple status bar for dwm written in rust. easy to use.
+Simple status bar for dwm written in rust. Easy to use.
 
 ## What it can show
    - Time
