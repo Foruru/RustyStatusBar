@@ -10,7 +10,7 @@ Simple status bar for dwm written in rust. Easy to use.
 ### Installation
 For installation just use
 ```
-$ cd rusty_status_bar
+$ cd RustyStatusBar
 $ su -c "make install"
 ```
 and then put it into your dwm start script
