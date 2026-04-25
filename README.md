@@ -27,13 +27,13 @@ rusty-statusbar --loop &
 
 ### Command-line options
 ```
-Usage: rusty-statusbar [OPTIONS]
+Usage:
+  rusty-statusbar [OPTIONS]
 
-Options:
-    -h, --help
-        Display this help message and exit.
-    -r, --refresh-rate <time>
-        Set refresh rate in milliseconds, value must be an integer.
-    -l, --loop
-        Loop program.
+
+Optional arguments:
+  -h,--help             Show this help message and exit
+  -l,--loop             Loop program.
+  -r,--refresh-rate REFRESH_RATE
+                        Set refresh rate in milliseconds (default: 1000).
 ```
