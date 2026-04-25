@@ -13,6 +13,7 @@ Simple status bar for dwm written in rust. Easy to use.
  - rust
  - cargo
  - libxcb-dev
+ - libxkbfile-dev
 
 ### Installation
 ```
