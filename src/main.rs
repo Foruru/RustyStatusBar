@@ -1,11 +1,10 @@
+use argparse::{ArgumentParser, StoreTrue, Store};
 use chrono::Local;
 use std::{
-    env::args,
     ffi::{c_char, c_int, c_uchar, c_uint, c_ulong, c_ushort, CStr, CString},
     fs::File,
     io::Read,
     mem::MaybeUninit,
-    process::abort,
     ptr,
     thread::sleep,
     time::Duration,
@@ -148,47 +147,26 @@ impl StatusBar for X11Bar {
     }
 }
 
-fn cli() -> X11Bar {
-    let args: Vec<String> = args().collect();
-    let mut bar = X11Bar::default();
-
-    if args.len() < 2 {
-        return bar;
-    }
-
-    for arg in args.iter().enumerate() {
-        match arg.1.as_ref() {
-            "-r" | "--refresh-rate" => {
-                bar.refresh_rate =
-                    Duration::from_millis(args[arg.0 + 1].parse::<u64>().unwrap_or_else(|_| {
-                        panic!(
-                            ">>> {} <<<\nInvalid syntax: value of refresh rate must be an integer",
-                            args[arg.0 + 1]
-                        )
-                    }))
-            }
-            "-l" | "--loop" => bar.is_looped = true,
-            "-h" | "--help" => {
-                println!(
-                    "Usage: rusty-statusbar [OPTIONS]
-
-Options:
-    -h, --help
-        Display this help message and exit.
-    -r, --refresh-rate <time>
-        Set refresh rate in milliseconds, value must be an integer.
-    -l, --loop
-        Loop program."
-                );
-                abort();
-            }
-            _ => (),
-        }
-    }
-
-    bar
-}
-
 fn main() {
-    cli().run();
+    let mut is_looped = false;
+    let mut refresh_rate: u64 = 1000;
+    {
+        let mut ap = ArgumentParser::new();
+        ap.refer(&mut is_looped)
+            .add_option(&["-l", "--loop"], StoreTrue,
+            "Loop program.");
+        ap.refer(&mut refresh_rate)
+            .add_option(&["-r", "--refresh-rate"], Store,
+            "Set refresh rate in milliseconds (default: 1000).");
+        ap.parse_args_or_exit();
+    }
+
+    let mut bar = X11Bar::default();
+    bar.is_looped = true;
+    if refresh_rate == 0 {
+        eprintln!("Refresh-rate must be greater than 0");
+        std::process::exit(1);
+    }
+    bar.refresh_rate = Duration::from_millis(refresh_rate);
+    bar.run();
 }
