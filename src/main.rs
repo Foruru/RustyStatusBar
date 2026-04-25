@@ -1,4 +1,4 @@
-use argparse::{ArgumentParser, StoreTrue, Store};
+use argparse::{ArgumentParser, Store, StoreTrue};
 use chrono::Local;
 use std::{
     ffi::{c_char, c_int, c_uchar, c_uint, c_ulong, c_ushort, CStr, CString},
@@ -9,8 +9,6 @@ use std::{
     thread::sleep,
     time::Duration,
 };
-
-static ONE_SEC: Duration = Duration::from_secs(1);
 
 #[repr(C)]
 struct _XkbStateRec {
@@ -65,31 +63,22 @@ extern "C" {
 struct X11Bar {
     display: *mut Display,
     window: c_ulong,
-    refresh_rate: Duration,
-    is_looped: bool,
 }
 
 impl Default for X11Bar {
     fn default() -> Self {
         let display = unsafe { XOpenDisplay(ptr::null()) };
         let window = unsafe { XRootWindow(display, XDefaultScreen(display)) };
-        let refresh_rate = ONE_SEC;
-        let is_looped = false;
 
-        Self {
-            display,
-            window,
-            refresh_rate,
-            is_looped,
-        }
+        Self { display, window }
     }
 }
 
 impl X11Bar {
-    pub fn run(&self) {
+    pub fn run(&self, is_looped: bool, refresh_rate: Duration) {
         self.xsetroot(self.statusbar());
-        while self.is_looped {
-            sleep(self.refresh_rate);
+        while is_looped {
+            sleep(refresh_rate);
             self.xsetroot(self.statusbar());
         }
 
@@ -153,20 +142,19 @@ fn main() {
     {
         let mut ap = ArgumentParser::new();
         ap.refer(&mut is_looped)
-            .add_option(&["-l", "--loop"], StoreTrue,
-            "Loop program.");
-        ap.refer(&mut refresh_rate)
-            .add_option(&["-r", "--refresh-rate"], Store,
-            "Set refresh rate in milliseconds (default: 1000).");
+            .add_option(&["-l", "--loop"], StoreTrue, "Loop program.");
+        ap.refer(&mut refresh_rate).add_option(
+            &["-r", "--refresh-rate"],
+            Store,
+            "Set refresh rate in milliseconds (default: 1000).",
+        );
         ap.parse_args_or_exit();
     }
 
-    let mut bar = X11Bar::default();
-    bar.is_looped = true;
+    let bar = X11Bar::default();
     if refresh_rate == 0 {
         eprintln!("Refresh-rate must be greater than 0");
         std::process::exit(1);
     }
-    bar.refresh_rate = Duration::from_millis(refresh_rate);
-    bar.run();
+    bar.run(is_looped, Duration::from_millis(refresh_rate));
 }
