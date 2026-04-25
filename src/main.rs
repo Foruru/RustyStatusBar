@@ -105,6 +105,23 @@ impl X11Bar {
     fn close_display(&self) {
         unsafe { XCloseDisplay(self.display) };
     }
+
+    fn kbd_layout(&self) -> &str {
+        let (vd, state) = unsafe {
+            let mut state: MaybeUninit<_XkbStateRec> = MaybeUninit::uninit();
+            let _ = XkbGetState(self.display, XkbUseCoreKbd, state.as_mut_ptr());
+
+            let mut vd: MaybeUninit<_XkbRF_VarDefs> = MaybeUninit::uninit();
+            let _ = XkbRF_GetNamesProp(self.display, ptr::null(), vd.as_mut_ptr());
+
+            (
+                CStr::from_ptr(vd.assume_init().layout).to_str().unwrap(),
+                state.assume_init().group,
+            )
+        };
+
+        vd.split(",").collect::<Vec<&str>>()[state as usize]
+    }
 }
 
 trait StatusBar {
@@ -121,22 +138,7 @@ impl StatusBar for X11Bar {
             .unwrap();
         temp = format!("+{:.2}.0°C", &temp[..2]);
 
-        let (vd, state) = unsafe {
-            let mut state: MaybeUninit<_XkbStateRec> = MaybeUninit::uninit();
-            let _ = XkbGetState(self.display, XkbUseCoreKbd, state.as_mut_ptr());
-
-            let mut vd: MaybeUninit<_XkbRF_VarDefs> = MaybeUninit::uninit();
-            let _ = XkbRF_GetNamesProp(self.display, ptr::null(), vd.as_mut_ptr());
-
-            (
-                CStr::from_ptr(vd.assume_init().layout).to_str().unwrap(),
-                state.assume_init().group,
-            )
-        };
-
-        let lang = vd.split(",").collect::<Vec<&str>>()[state as usize]
-            .to_string()
-            .to_uppercase();
+        let lang = self.kbd_layout().to_string().to_uppercase();
 
         let datetime = Local::now();
         let date = &datetime.format("%d.%m.%y");
