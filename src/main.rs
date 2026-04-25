@@ -121,7 +121,7 @@ impl StatusBar for X11Bar {
             .unwrap();
         temp = format!("+{:.2}.0°C", &temp[..2]);
 
-        let (kl, s) = unsafe {
+        let (vd, state) = unsafe {
             let mut state: MaybeUninit<_XkbStateRec> = MaybeUninit::uninit();
             let _ = XkbGetState(self.display, XkbUseCoreKbd, state.as_mut_ptr());
 
@@ -134,7 +134,7 @@ impl StatusBar for X11Bar {
             )
         };
 
-        let lang = kl.split(",").collect::<Vec<&str>>()[s as usize]
+        let lang = vd.split(",").collect::<Vec<&str>>()[state as usize]
             .to_string()
             .to_uppercase();
 
