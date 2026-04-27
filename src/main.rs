@@ -65,16 +65,17 @@ struct X11Bar {
     window: c_ulong,
 }
 
-impl Default for X11Bar {
-    fn default() -> Self {
+impl X11Bar {
+    pub fn new() -> Result<Self, &'static str> {
         let display = unsafe { XOpenDisplay(ptr::null()) };
+        if display.is_null() {
+            return Err("Cannot open display");
+        }
         let window = unsafe { XRootWindow(display, XDefaultScreen(display)) };
 
-        Self { display, window }
+        Ok(Self { display, window })
     }
-}
 
-impl X11Bar {
     pub fn run(&self, is_looped: bool, refresh_rate: Duration) {
         self.xsetroot(self.statusbar());
         while is_looped {
@@ -136,7 +137,7 @@ impl StatusBar for X11Bar {
     }
 }
 
-fn main() {
+fn main() -> Result<(), &'static str> {
     let mut is_looped = false;
     let mut refresh_rate: u64 = 1000;
     {
@@ -151,10 +152,12 @@ fn main() {
         ap.parse_args_or_exit();
     }
 
-    let bar = X11Bar::default();
+    let bar = X11Bar::new()?;
     if refresh_rate == 0 {
         eprintln!("Refresh-rate must be greater than 0");
         std::process::exit(1);
     }
     bar.run(is_looped, Duration::from_millis(refresh_rate));
+
+    Ok(())
 }
