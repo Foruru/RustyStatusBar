@@ -154,8 +154,7 @@ fn main() -> Result<(), &'static str> {
 
     let bar = X11Bar::new()?;
     if refresh_rate == 0 {
-        eprintln!("Refresh-rate must be greater than 0");
-        std::process::exit(1);
+        return Err("Refresh-rate must be greater than 0");
     }
     bar.run(is_looped, Duration::from_millis(refresh_rate));
 
