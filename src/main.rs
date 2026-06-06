@@ -2,13 +2,12 @@ use argparse::{ArgumentParser, Store, StoreTrue};
 use chrono::Local;
 use std::{
     ffi::{c_char, c_int, c_uchar, c_uint, c_ulong, c_ushort, CStr, CString},
-    fs::File,
-    io::Read,
     mem::MaybeUninit,
     ptr,
     thread::sleep,
     time::Duration,
 };
+use systemstat::{Platform, System};
 
 #[repr(C)]
 struct _XkbStateRec {
@@ -119,13 +118,12 @@ trait StatusBar {
 
 impl StatusBar for X11Bar {
     fn statusbar(&self) -> String {
-        let mut temp = String::new();
-        let temp_file_path = "/sys/class/hwmon/hwmon0/temp1_input";
-        File::open(&temp_file_path)
-            .unwrap_or_else(|_| panic!("Can not open file {}", temp_file_path))
-            .read_to_string(&mut temp)
-            .unwrap();
-        temp = format!("+{:.2}.0°C", &temp[..2]);
+        let sys = System::new();
+
+        let temp = match sys.cpu_temp() {
+            Ok(cpu_temp) => format!("+{:.0}.0°C", cpu_temp),
+            Err(_) => "-1°C".to_string(),
+        };
 
         let lang = self.kbd_layout().to_string().to_uppercase();
 
