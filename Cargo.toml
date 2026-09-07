@@ -6,4 +6,3 @@ edition = "2021"
 [dependencies]
 chrono = "0.4.38"
 argparse = "0.2.2"
-systemstat = "0.2.7"

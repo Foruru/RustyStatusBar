@@ -3,11 +3,11 @@ use chrono::Local;
 use std::{
     ffi::{c_char, c_int, c_uchar, c_uint, c_ulong, c_ushort, CStr, CString},
     mem::MaybeUninit,
+    path::PathBuf,
     ptr,
     thread::sleep,
     time::Duration,
 };
-use systemstat::{Platform, System};
 
 #[repr(C)]
 struct _XkbStateRec {
@@ -62,6 +62,7 @@ extern "C" {
 struct X11Bar {
     display: *mut Display,
     window: c_ulong,
+    hwmon_cpu_temp_file: PathBuf,
 }
 
 impl X11Bar {
@@ -72,7 +73,22 @@ impl X11Bar {
         }
         let window = unsafe { XRootWindow(display, XDefaultScreen(display)) };
 
-        Ok(Self { display, window })
+        let hwmon_cpu_temp_file = std::fs::read_dir("/sys/class/hwmon")
+            .map_err(|_| "Failed to read /sys/class/hwmon")?
+            .flatten()
+            .find(|entry| {
+                std::fs::read_to_string(entry.path().join("name"))
+                    .map(|name| matches!(name.trim(), "k10temp" | "coretemp"))
+                    .unwrap_or(false)
+            })
+            .map(|entry| entry.path())
+            .ok_or("No CPU temperature sensor found (k10temp/coretemp)")?;
+
+        Ok(Self {
+            display,
+            window,
+            hwmon_cpu_temp_file,
+        })
     }
 
     pub fn run(&self, is_looped: bool, refresh_rate: Duration) {
@@ -118,12 +134,7 @@ trait StatusBar {
 
 impl StatusBar for X11Bar {
     fn statusbar(&self) -> String {
-        let sys = System::new();
-
-        let temp = match sys.cpu_temp() {
-            Ok(cpu_temp) => format!("+{:.0}.0°C", cpu_temp),
-            Err(_) => "-1°C".to_string(),
-        };
+        let temp = std::fs::read_to_string(self.hwmon_cpu_temp_file.join("temp1_input")).unwrap();
 
         let lang = self.kbd_layout().to_string().to_uppercase();
 
@@ -131,7 +142,7 @@ impl StatusBar for X11Bar {
         let date = &datetime.format("%d.%m.%y");
         let time = &datetime.format("%H:%M:%S");
 
-        format!("    | {temp} | {lang} | {date} | {time} |   ")
+        format!("    | +{temp:.2}.0°C | {lang} | {date} | {time} |   ")
     }
 }
 
